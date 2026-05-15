@@ -39,9 +39,17 @@ private:
 	USBLineCamera8M* camera;
 	OCTSerialCom* octSerialCom;
 
+	// Auto-flow config restored in settingsLoaded
+	bool autoConnect;
+	QString prestartCmd;
+	QString triggerStartCmd;
+	QString triggerStopCmd;
+	QString shutdownCmd;
+	int cudaInitDelayMs;
 
 	bool init();
 	void uninit();
+	void sendSerialCommand(const QString &cmd);
 
 public slots:
 	void onCameraSettingsChanged(usblinecamera8mSettings newParams);

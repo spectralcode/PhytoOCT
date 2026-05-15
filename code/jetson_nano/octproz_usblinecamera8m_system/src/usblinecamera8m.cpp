@@ -16,7 +16,9 @@ USBLineCamera8M::USBLineCamera8M(QObject* parent)
 {
 	qint32 ringBufferSizeInBytes = 16*1024*1024;
 	ls_initialize(ringBufferSizeInBytes, this->packetLength);
-	this->autoOpenDevice();
+	//this->autoOpenDevice();
+	// Device open is deferred to USBLineCamera8MSystem::settingsLoaded so the
+	// persisted device selection can be honored instead of always grabbing index 0.
 }
 
 USBLineCamera8M::~USBLineCamera8M()
@@ -68,6 +70,23 @@ void USBLineCamera8M::openDevice(qint32 id)
 	}
 }
 
+void USBLineCamera8M::openDeviceByName(const QString &displayName)
+{
+	if(displayName.isEmpty()){
+		return;
+	}
+	this->enumerateDevices();
+	quint16 cnt = ls_devicecount();
+	for(quint16 i = 0; i < cnt; i++){
+		const QString name = QString(ls_getproductname(i)) + " " + QString(ls_getserialnumber(i));
+		if(name == displayName){
+			this->openDevice(i);
+			return;
+		}
+	}
+	emit cameraError(tr("No device matching '%1' found").arg(displayName));
+}
+
 void USBLineCamera8M::closeDevice()
 {
 	if (ls_currentdeviceindex()>= 0) {
@@ -83,6 +102,19 @@ void USBLineCamera8M::startAcquisition()
 	quint8 state;
 	quint8 mode;
 	qint32 ierr;
+
+	// Reset producer-side frame position so the first chunk lands at buffer offset 0.
+	// Without this the previous session's mid-buffer offset locks in a permanent misalignment.
+	this->bytesWritten = 0;
+
+	// Drain any stale bytes left in the vendor ring buffer from a previous session
+	// (vendor API has no flush; close/reopen is the only alternative).
+	{
+		QByteArray scratch(this->packetLength, '\0');
+		while (ls_getpipe(scratch.data(), scratch.size()) > 0) {
+			// discard
+		}
+	}
 
 	this->acquisitionRunning = true;
 	this->startpipethread(this->currentSettings.pixelCount, this->currentSettings.bitMode);
@@ -215,6 +247,11 @@ void USBLineCamera8M::setNumberOfLinesToGetPerRead(qint32 packetLengthMultiplier
 	qint32 ierr ;
 	qint32 recommendedPacketLength; //size of one single line in byters (number of sensor pixels * bitDepth/2)
 	qint32 newPacketLength;
+
+	// Skip silently if no device is open yet; the system reapplies this on deviceOpened(true).
+	if(ls_currentdeviceindex() < 0){
+		return;
+	}
 
 	ierr = ls_getpacketlength(recommendedPacketLength, 1000);
 	if (ierr == 0) {

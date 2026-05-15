@@ -23,6 +23,7 @@ public slots:
 	void autoOpenDevice();
 	void enumerateDevices();
 	void openDevice(qint32 id);
+	void openDeviceByName(const QString &displayName);
 	void closeDevice();
 	void startAcquisition();
 	void stopAcquisition();

@@ -77,3 +77,31 @@ void ComPortSelectWidget::onConnectButtonPressed() {
 void ComPortSelectWidget::onDisconnectButtonPressed() {
 	emit disconnectFromComPortRequested();
 }
+
+QString ComPortSelectWidget::currentPortName() const {
+	return this->ui.comboBox_port->currentText();
+}
+
+qint32 ComPortSelectWidget::currentBaudRate() const {
+	return this->ui.comboBox_baudrate->currentText().toInt();
+}
+
+void ComPortSelectWidget::setPortName(const QString &name) {
+	if(name.isEmpty()){
+		return;
+	}
+	int index = this->ui.comboBox_port->findText(name);
+	if(index >= 0){
+		this->ui.comboBox_port->setCurrentIndex(index);
+	}
+}
+
+void ComPortSelectWidget::setBaudRate(qint32 baudRate) {
+	if(baudRate <= 0){
+		return;
+	}
+	int index = this->ui.comboBox_baudrate->findText(QString::number(baudRate));
+	if(index >= 0){
+		this->ui.comboBox_baudrate->setCurrentIndex(index);
+	}
+}

@@ -30,6 +30,15 @@ SOFTWARE.
 #define HEIGHT "height"
 #define DEPTH "depth"
 #define BUFFERS_PER_VOLUME "buffers_per_volume"
+#define COM_PORT "com_port"
+#define BAUD_RATE "baud_rate"
+#define CAMERA_SELECTION "camera_selection"
+#define AUTO_CONNECT "auto_connect"
+#define PRESTART_CMD "prestart_cmd"
+#define TRIGGER_START_CMD "trigger_start_cmd"
+#define TRIGGER_STOP_CMD "trigger_stop_cmd"
+#define SHUTDOWN_CMD "shutdown_cmd"
+#define CUDA_INIT_DELAY_MS "cuda_init_delay_ms"
 
 
 #include <qstandardpaths.h>
@@ -37,9 +46,13 @@ SOFTWARE.
 #include <QDialog>
 #include <QString>
 #include <QFileDialog>
+#include <QCheckBox>
 #include "usblinecamera8msettings.h"
 #include "acquisitionparameter.h"
 #include "ui_usblinecamera8msystemsettingsdialog.h"
+#include "serialcompanel/comportselectwidget.h"
+
+class AutoFlowSettingsDialog;
 
 
 class USBLineCamera8MSystemSettingsDialog : public QDialog
@@ -59,8 +72,13 @@ private:
 	Ui::USBLineCamera8MSystemSettingsDialog* ui;
 	usblinecamera8mSettings cameraParams;
 	AcquisitionParams acqParams;
+	QString savedCameraSelection;
+
+	QCheckBox* autoConnectCheckBox;
+	AutoFlowSettingsDialog* autoFlowDialog;
 
 	void initGui();
+	void buildAutoFlowHeader();
 	void connectAllGuiElementsToGetCameraSettingsFromGuiSlot();
 	void disconnectAllGuiElementsToGetCameraSettingsFromGuiSlot();
 

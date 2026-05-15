@@ -1,8 +1,13 @@
 
 #include "usblinecamera8msystemsettingsdialog.h"
+#include "autoflowsettingsdialog.h"
+#include <QHBoxLayout>
+#include <QToolButton>
+#include <QVBoxLayout>
 
 USBLineCamera8MSystemSettingsDialog::USBLineCamera8MSystemSettingsDialog(QWidget *parent)
-	: ui(new Ui::USBLineCamera8MSystemSettingsDialog) //QDialog(parent)
+	: ui(new Ui::USBLineCamera8MSystemSettingsDialog), //QDialog(parent)
+	  autoFlowDialog(new AutoFlowSettingsDialog(this))
 {
 	ui->setupUi(this);
 	initGui();
@@ -13,10 +18,25 @@ USBLineCamera8MSystemSettingsDialog::~USBLineCamera8MSystemSettingsDialog()
 }
 
 void USBLineCamera8MSystemSettingsDialog::setSettings(QVariantMap settings){
+	this->disconnectAllGuiElementsToGetCameraSettingsFromGuiSlot();
 	this->ui->spinBox_width->setValue(settings.value(WIDTH).toInt());
 	this->ui->spinBox_height->setValue(settings.value(HEIGHT).toInt());
 	this->ui->spinBox_depth->setValue(settings.value(DEPTH).toInt());
 	this->ui->spinBox_buffersPerVolume->setValue(settings.value(BUFFERS_PER_VOLUME).toInt());
+	this->ui->comboBox_bitDepth->setCurrentIndex(settings.value(BITDEPTH).toInt());
+	this->connectAllGuiElementsToGetCameraSettingsFromGuiSlot();
+
+	if(ComPortSelectWidget* portWidget = this->findChild<ComPortSelectWidget*>()){
+		portWidget->setPortName(settings.value(COM_PORT).toString());
+		portWidget->setBaudRate(settings.value(BAUD_RATE).toInt());
+	}
+	this->savedCameraSelection = settings.value(CAMERA_SELECTION).toString();
+
+	if(this->autoConnectCheckBox){
+		this->autoConnectCheckBox->setChecked(settings.value(AUTO_CONNECT, true).toBool());
+	}
+	this->autoFlowDialog->setSettings(settings);
+
 	this->getAcquisitionSettingsFromGui();
 }
 
@@ -25,6 +45,19 @@ void USBLineCamera8MSystemSettingsDialog::getSettings(QVariantMap* settings) {
 	settings->insert(HEIGHT, this->ui->spinBox_height->value());
 	settings->insert(DEPTH, this->ui->spinBox_depth->value());
 	settings->insert(BUFFERS_PER_VOLUME, this->ui->spinBox_buffersPerVolume->value());
+	settings->insert(BITDEPTH, this->ui->comboBox_bitDepth->currentIndex());
+
+	if(const ComPortSelectWidget* portWidget = this->findChild<ComPortSelectWidget*>()){
+		settings->insert(COM_PORT, portWidget->currentPortName());
+		settings->insert(BAUD_RATE, portWidget->currentBaudRate());
+	}
+	const QString currentCameraText = this->ui->comboBox_devices->currentText();
+	settings->insert(CAMERA_SELECTION, currentCameraText.isEmpty() ? this->savedCameraSelection : currentCameraText);
+
+	if(this->autoConnectCheckBox){
+		settings->insert(AUTO_CONNECT, this->autoConnectCheckBox->isChecked());
+	}
+	this->autoFlowDialog->getSettings(settings);
 }
 
 qint32 USBLineCamera8MSystemSettingsDialog::getDeviceIndex()
@@ -39,6 +72,26 @@ void USBLineCamera8MSystemSettingsDialog::initGui(){
 	connect(this->ui->pushButton_open, &QPushButton::clicked, this, &USBLineCamera8MSystemSettingsDialog::openClicked);
 	connect(this->ui->pushButton_savesettings, &QPushButton::clicked, this, &USBLineCamera8MSystemSettingsDialog::saveSettingsClicked);
 	this->connectAllGuiElementsToGetCameraSettingsFromGuiSlot();
+	this->buildAutoFlowHeader();
+}
+
+void USBLineCamera8MSystemSettingsDialog::buildAutoFlowHeader(){
+	this->autoConnectCheckBox = new QCheckBox(tr("Auto-connect on launch"), this);
+	this->autoConnectCheckBox->setChecked(true);
+
+	auto* configButton = new QToolButton(this);
+	configButton->setText(QStringLiteral("…"));
+	configButton->setToolTip(tr("Auto-flow command settings"));
+	connect(configButton, &QToolButton::clicked, this->autoFlowDialog, &QDialog::exec);
+
+	auto* row = new QHBoxLayout;
+	row->addWidget(this->autoConnectCheckBox);
+	row->addWidget(configButton);
+	row->addStretch();
+
+	if(auto* mainLayout = qobject_cast<QVBoxLayout*>(this->layout())){
+		mainLayout->insertLayout(0, row);
+	}
 }
 
 void USBLineCamera8MSystemSettingsDialog::connectAllGuiElementsToGetCameraSettingsFromGuiSlot()
@@ -109,6 +162,8 @@ void USBLineCamera8MSystemSettingsDialog::updateCameraSettingsInGui(const usblin
 	this->ui->comboBox_imageNumbering->setCurrentIndex(cameraSettings.useImageNumbering);
 
 	this->connectAllGuiElementsToGetCameraSettingsFromGuiSlot();
+
+	this->getAcquisitionSettingsFromGui();
 }
 
 void USBLineCamera8MSystemSettingsDialog::updateDeviceComboBox(QStringList devices)

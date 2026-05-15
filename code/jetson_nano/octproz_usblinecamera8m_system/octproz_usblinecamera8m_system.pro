@@ -28,6 +28,7 @@ SOURCES += \
 	src/usblinecamera8msystemsettingsdialog.cpp \
 	src/usblinecamera8msystem.cpp \
 	src/usblinecamera8m.cpp \
+	src/autoflowsettingsdialog.cpp \
 	thirdparty/coptonix/pipethread.cpp \
 	serialcompanel/comportselectwidget.cpp \
 	serialcompanel/octserialcom.cpp \
@@ -39,6 +40,7 @@ HEADERS += \
 	src/usblinecamera8msystemsettingsdialog.h \
 	src/usblinecamera8m.h \
 	src/usblinecamera8msettings.h \
+	src/autoflowsettingsdialog.h \
 	thirdparty/coptonix/pipethread.h \
 	serialcompanel/comportselectwidget.h \
 	serialcompanel/octserialcom.h \

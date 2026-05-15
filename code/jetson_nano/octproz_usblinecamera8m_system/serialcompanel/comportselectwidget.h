@@ -11,6 +11,11 @@ class ComPortSelectWidget : public QWidget
 public:
 	explicit ComPortSelectWidget(QWidget *parent = nullptr);
 
+	QString currentPortName() const;
+	qint32 currentBaudRate() const;
+	void setPortName(const QString &name);
+	void setBaudRate(qint32 baudRate);
+
 private:
 	Ui::ComPortSelectWidget ui;
 
