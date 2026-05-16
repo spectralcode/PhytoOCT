@@ -40,16 +40,17 @@ private:
 	OCTSerialCom* octSerialCom;
 
 	// Auto-flow config restored in settingsLoaded
-	bool autoConnect;
+	bool autoConnect = true;
 	QString prestartCmd;
 	QString triggerStartCmd;
 	QString triggerStopCmd;
 	QString shutdownCmd;
-	int cudaInitDelayMs;
+	int cudaInitDelayMs = 1000;
 
 	bool init();
 	void uninit();
 	void sendSerialCommand(const QString &cmd);
+	void loadAutoFlowConfig(const QVariantMap &settings);
 
 public slots:
 	void onCameraSettingsChanged(usblinecamera8mSettings newParams);

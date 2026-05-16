@@ -15,6 +15,7 @@ USBLineCamera8MSystemSettingsDialog::USBLineCamera8MSystemSettingsDialog(QWidget
 
 USBLineCamera8MSystemSettingsDialog::~USBLineCamera8MSystemSettingsDialog()
 {
+	delete ui;
 }
 
 void USBLineCamera8MSystemSettingsDialog::setSettings(QVariantMap settings){

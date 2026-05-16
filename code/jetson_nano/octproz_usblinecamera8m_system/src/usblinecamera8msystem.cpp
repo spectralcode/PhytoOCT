@@ -14,6 +14,8 @@ USBLineCamera8MSystem::USBLineCamera8MSystem()
 
 	this->octSerialCom = this->systemDialog->findChild<OCTSerialCom*>();
 	connect(this->octSerialCom, &OCTSerialCom::startRecordingRequested, this, &Plugin::startRecordingRequest);
+	connect(this->octSerialCom, &OCTSerialCom::errorOccurred, this,
+		[this](const QString &msg){ emit error(tr("Serial: %1").arg(msg)); });
 
 	qRegisterMetaType<usblinecamera8mSettings >("usblinecamera8mSettings");
 
@@ -68,6 +70,15 @@ void USBLineCamera8MSystem::sendSerialCommand(const QString &cmd){
 	// is moved to the acquisition thread when the user activates the plugin.
 	QMetaObject::invokeMethod(this->octSerialCom, "sendCommand",
 		Qt::AutoConnection, Q_ARG(QString, cmd));
+}
+
+void USBLineCamera8MSystem::loadAutoFlowConfig(const QVariantMap &settings){
+	this->autoConnect     = settings.value(AUTO_CONNECT,       true).toBool();
+	this->prestartCmd     = settings.value(PRESTART_CMD,       "sld=1").toString();
+	this->triggerStartCmd = settings.value(TRIGGER_START_CMD,  "run=1").toString();
+	this->triggerStopCmd  = settings.value(TRIGGER_STOP_CMD,   "run=0").toString();
+	this->shutdownCmd     = settings.value(SHUTDOWN_CMD,       "sld=0").toString();
+	this->cudaInitDelayMs = settings.value(CUDA_INIT_DELAY_MS, 1000).toInt();
 }
 
 bool USBLineCamera8MSystem::init() {
@@ -133,12 +144,7 @@ void USBLineCamera8MSystem::stopAcquisition(){
 
 void USBLineCamera8MSystem::settingsLoaded(QVariantMap settings){
 	// Restore auto-flow config with sensible defaults so a fresh install still works.
-	this->autoConnect     = settings.value(AUTO_CONNECT,       true).toBool();
-	this->prestartCmd     = settings.value(PRESTART_CMD,       "sld=1").toString();
-	this->triggerStartCmd = settings.value(TRIGGER_START_CMD,  "run=1").toString();
-	this->triggerStopCmd  = settings.value(TRIGGER_STOP_CMD,   "run=0").toString();
-	this->shutdownCmd     = settings.value(SHUTDOWN_CMD,       "sld=0").toString();
-	this->cudaInitDelayMs = settings.value(CUDA_INIT_DELAY_MS, 500).toInt();
+	this->loadAutoFlowConfig(settings);
 
 	// Preserve the full map so non-UI keys (auto_connect etc.) survive future
 	// storeSettings round-trips driven by onOctDimensionsChanged.
@@ -199,5 +205,9 @@ void USBLineCamera8MSystem::onOctDimensionsChanged(AcquisitionParams newOctParam
 
 	//store settings, so settings can be reloaded into gui at next start of application
 	this->systemDialog->getSettings(&this->settingsMap);
+	// Refresh cached auto-flow values so edits made in the sub-dialog take effect
+	// immediately in this session (without it, Start would still use the values
+	// captured at app launch).
+	this->loadAutoFlowConfig(this->settingsMap);
 	emit storeSettings(this->name, this->settingsMap);
 }

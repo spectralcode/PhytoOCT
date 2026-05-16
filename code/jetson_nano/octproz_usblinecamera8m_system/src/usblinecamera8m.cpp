@@ -256,6 +256,10 @@ void USBLineCamera8M::setNumberOfLinesToGetPerRead(qint32 packetLengthMultiplier
 	ierr = ls_getpacketlength(recommendedPacketLength, 1000);
 	if (ierr == 0) {
 		newPacketLength = recommendedPacketLength * packetLengthMultiplier;
+
+		if (newPacketLength == this->packetLength) {
+			return;
+		}
 		int currentDevice = ls_currentdeviceindex();
 		if(currentDevice >= 0){
 			ls_closedevice();
